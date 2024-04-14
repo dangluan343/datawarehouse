@@ -1,21 +1,20 @@
-import datetime as dt
-
-from airflow import DAG
-# python operator to define task by python code
-from airflow.operators.python_operator import PythonOperator
 
 import os
+# get dag directory path
+dag_path = os.getcwd()
 #pyart
 import pyart
 import psycopg2 #postgresql package
 from psycopg2 import sql
 
-# get dag directory path
-dag_path = os.getcwd()
 
-def transform_data(**kwargs):
+def handle_data_radar(): 
+    data = transform_data()
+    load_data(data)
+
+
+def transform_data():
     # Đọc dữ liệu từ tệp radar
-    kwargs['ti'].xcom_push(key='test', value='hha')
     radar = pyart.io.read_sigmet(f"{dag_path}/data/radar/2020/Pro-Raw(1-8)T7-2020/01/NHB200701000010.RAWXPS3")
     
     # Trích xuất thông tin về vị trí và chiếu
@@ -55,10 +54,9 @@ def transform_data(**kwargs):
             }
             data_frames.append(data_frame)
     
-    kwargs['ti'].xcom_push(key='transformed_data', value=data_frames)
+    return data_frames
 
-
-def load_data(**kwargs):
+def load_data(data_frames):
     database_name = 'staging_area'
     user = 'luanluan'
     password = '123'
@@ -77,9 +75,8 @@ def load_data(**kwargs):
     table_name = 'radar'
 
     # Insert the image data into the database
-    data_frames = kwargs['ti'].xcom_pull(task_ids='transform_data', key='transformed_data')
+    # data_frames = kwargs['ti'].xcom_pull(task_ids='transform_data', key='transformed_data')
 
-    print('data_frames', len(data_frames))
 
     for data_frame in data_frames:
         cursor.execute(sql.SQL("""
@@ -95,26 +92,3 @@ def load_data(**kwargs):
     cursor.close()
     conn.close()  
 
-
-ingestion_dag = DAG(
-    dag_id="radar_ingestion", 
-    schedule="0 0 * * *", 
-    start_date=dt.datetime(2024, 3, 26),
-    tags=["example"], 
-    description='Extract data from sigmet format and import into staging database',
-    catchup=False # do not run past DAG if it was paused
-)
-
-transform_data_task = PythonOperator(
-    task_id='transform_data',
-    python_callable=transform_data,
-    dag=ingestion_dag,
-)
-
-load_data_task = PythonOperator(
-    task_id='load_data',
-    python_callable=load_data,
-    dag=ingestion_dag,
-)
-
-transform_data_task >> load_data_task
