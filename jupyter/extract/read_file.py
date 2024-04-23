@@ -17,3 +17,4 @@ time = radar.time['data']
 timestamps = pyart.util.datetimes_from_radar(radar)
 
 print((timestamps[100]))
+
