@@ -53,15 +53,3 @@ for first_level in range(first_level_len):
         }
         data_frames.append(data_frame)
 
-field_names = ['longitude', 'latitude', 'altitude', 'reflectivity', 'total_power', 'velocity', 'spectrum_width', 'time']
-
-
-print('timestamp', timestamp)
-# Write data into CSV file
-# with open(csv_file_path, 'w', newline='') as csv_file:
-#     writer = csv.DictWriter(csv_file, fieldnames=field_names)
-#     writer.writeheader()
-#     for data_frame in data_frames:
-#         writer.writerow(data_frame)
-
-# print("Data has been written to", csv_file_path)
